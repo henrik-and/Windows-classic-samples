@@ -8,27 +8,28 @@
 void usage()
 {
     std::wcout <<
-        L"Usage: ApplicationLoopback <pid> <includetree|excludetree> <outputfilename>\n"
+        L"Usage: ApplicationLoopback <pid> <duration> <includetree|excludetree> <outputfilename>\n"
         L"\n"
         L"<pid> is the process ID to capture or exclude from capture\n"
-        L"includetree includes audio from that process and its child processes\n"
-        L"excludetree includes audio from all processes except that process and its child processes\n"
-        L"<outputfilename> is the WAV file to receive the captured audio (10 seconds)\n"
+        L"<duration> is the capture time in seconds\n"
+        L"<includetree> includes audio from that process and its child processes\n"
+        L"<excludetree> includes audio from all processes except that process and its child processes\n"
+        L"<outputfilename> is the WAV file to receive the captured audio (<duration> seconds)\n"
         L"\n"
         L"Examples:\n"
         L"\n"
-        L"ApplicationLoopback 1234 includetree CapturedAudio.wav\n"
+        L"ApplicationLoopback 1234 10 includetree CapturedAudio.wav\n"
         L"\n"
-        L"  Captures audio from process 1234 and its children.\n"
+        L"  Captures audio from process 1234 and its children during 10 seconds.\n"
         L"\n"
-        L"ApplicationLoopback 1234 excludetree CapturedAudio.wav\n"
+        L"ApplicationLoopback 1234 30 excludetree CapturedAudio.wav\n"
         L"\n"
-        L"  Captures audio from all processes except process 1234 and its children.\n";
+        L"  Captures audio from all processes except process 1234 and its children during 30 seconds.\n";
 }
 
 int wmain(int argc, wchar_t* argv[])
 {
-    if (argc != 4)
+    if (argc != 5)
     {
         usage();
         return 0;
@@ -41,12 +42,19 @@ int wmain(int argc, wchar_t* argv[])
         return 0;
     }
 
+    DWORD durationSec = wcstoul(argv[2], nullptr, 0);
+    if (durationSec == 0)
+    {
+        usage();
+        return 0;
+    }
+
     bool includeProcessTree;
-    if (wcscmp(argv[2], L"includetree") == 0)
+    if (wcscmp(argv[3], L"includetree") == 0)
     {
         includeProcessTree = true;
     }
-    else if (wcscmp(argv[2], L"excludetree") == 0)
+    else if (wcscmp(argv[3], L"excludetree") == 0)
     {
         includeProcessTree = false;
     }
@@ -56,7 +64,7 @@ int wmain(int argc, wchar_t* argv[])
         return 0;
     }
 
-    PCWSTR outputFile = argv[3];
+    PCWSTR outputFile = argv[4];
 
     CLoopbackCapture loopbackCapture;
     HRESULT hr = loopbackCapture.StartCaptureAsync(processId, includeProcessTree, outputFile);
@@ -69,8 +77,8 @@ int wmain(int argc, wchar_t* argv[])
     }
     else
     {
-        std::wcout << L"Capturing 10 seconds of audio." << std::endl;
-        Sleep(10000);
+        std::wcout << L"Capturing " << durationSec << " seconds of audio." << std::endl;
+        Sleep(durationSec * 1000);
 
         loopbackCapture.StopCaptureAsync();
 
